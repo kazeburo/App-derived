@@ -1,0 +1,42 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use App::derived;
+use Getopt::Long qw/:config posix_default no_ignore_case bundling auto_help/;
+use Pod::Usage qw/pod2usage/;
+
+GetOptions(
+    \my %opt, qw/
+    i=i
+    p|port=i
+    h|host=s
+/) or pod2usage(1);
+
+$opt{h} ||= 0;
+pod2usage(1) unless $opt{p};
+my $interval = $opt{i} || 10;
+my ($derivedfile) = @ARGV;
+pod2usage(1) unless $derivedfile;
+
+my $derived = App::derived->new;
+my $services = load_derviedfile($derivedfile);
+
+for my $service ( keys %$services ) {
+    $derived->add_service($service, $services->{$service});
+}
+$derived->run;
+
+sub load_derviedfile {
+    my $file = shift;
+    my %services;
+    open(my $fh, '<:utf8', $file) or die "cannot load file $file: $!";
+    while (my $line = <$fh>) {
+        if (my ($name, $command) = ($line =~ /^([^:]+)\s*:\s*(.+)/)) {
+            $services{$name} = $command;
+        }
+    }
+    return \%services;
+}
