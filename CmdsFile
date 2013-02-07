@@ -1,1 +1,2 @@
 com_select: mysql -NB -e 'show global status like "Com_select%"'
+com_status: mysql -NB -e 'show global status like "Com_show_status%"'

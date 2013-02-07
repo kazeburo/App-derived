@@ -54,6 +54,7 @@ sub add_service {
     debugf("add service: %s", $key);
     $self->{proclet}->service(
         code => sub {
+            $0 = "$0 worker $key";
             $self->worker($key);
             exit;
         },
@@ -64,11 +65,22 @@ sub add_service {
 sub run {
     my $self = shift;
 
+    my $localaddr = $self->{host} .':'. $self->{port};
+    my $sock = IO::Socket::INET->new(
+        Listen    => SOMAXCONN,
+        LocalAddr => $localaddr,
+        Proto     => 'tcp',
+        (($^O eq 'MSWin32') ? () : (ReuseAddr => 1)),
+    ) or die "failed to listen to port $localaddr: $!";
+
+
     $self->{proclet}->service(
         code => sub {
-            $self->server();
+            $0 = "$0 server";
+            $self->server($sock);
         },
-        tag => 'server'
+        tag => 'server',
+        worker => 3,
     );
     debugf("run proclet");
     $self->{proclet}->run;
@@ -176,14 +188,7 @@ sub atomic_write {
 
 sub server {
     my $self = shift;
-    my $localaddr = $self->{host} .':'. $self->{port};
-
-    my $sock = IO::Socket::INET->new(
-        Listen    => SOMAXCONN,
-        LocalAddr => $localaddr,
-        Proto     => 'tcp',
-        (($^O eq 'MSWin32') ? () : (ReuseAddr => 1)),
-    ) or die "failed to listen to port $localaddr: $!";
+    my $sock = shift;
 
     while(1) {
         local $SIG{PIPE} = 'IGNORE';
@@ -210,19 +215,35 @@ sub handle_connection {
     while (1) {
         my $rlen = read_timeout(
             $conn, \$buf, $MAX_REQUEST_SIZE - length($buf), length($buf), $self->{timeout},
-        ) or return;
+        ) or last;
         if ( parse_read_buffer($buf, $req ) ) {
+            $buf = '';
             if ( $req->{cmd} eq 'get' ) {
                 my @keys = split /\x20+/, $req->{keys};
                 my $result;
                 debugf("[server] request get => %s from %s:%s", $req->{keys}, $conn->peerhost, $conn->peerport);
                 for my $key ( @keys ) {
+                    my $full;
+                    if ( $key =~ m!:full$! ) {
+                        $full = 1;
+                        $key =~ s!:full$!!;
+                    }
                     if ( exists $self->{services}->{$key} ) {
                         my $service = $self->{services}->{$key};
                         open my $fh, $service->{file} or next;
                         my $val = do { local $/; <$fh> };
-                        $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
-                        $result .= $CRLF . $val . $CRLF;
+                        if ( $full ) {
+                            $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
+                            $result .= $CRLF . $val . $CRLF;
+                        }
+                        else {
+                            my $ref = $_JSON->decode($val);
+                            if ( exists $ref->{persec} ) {
+                                my $val = $ref->{persec};
+                                $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
+                                $result .= $CRLF . $val . $CRLF;                                
+                            }
+                        }
                     }
                 }
                 $result .= "END" . $CRLF;
