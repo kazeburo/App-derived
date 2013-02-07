@@ -9,12 +9,12 @@ use IO::Socket::INET;
 use POSIX qw(EINTR EAGAIN EWOULDBLOCK);
 use Socket qw(IPPROTO_TCP TCP_NODELAY);
 use Proclet;
-use JSON::XS ();
+use JSON ();
 use Log::Minimal;
 
 our $VERSION = '0.01';
 
-my $_JSON = JSON::XS->new()
+my $_JSON = JSON->new()
     ->utf8(1)
     ->shrink(1)
     ->space_before(0)
@@ -104,7 +104,7 @@ sub worker {
     while ( $stop ) {
         while ( $stop ) {
             last if time >= $n;
-            select undef, undef, undef, 0.1 ## no crtic;
+            select undef, undef, undef, 0.1 ## no critic;
         }
         $n = $n + $self->{interval};
         local $Log::Minimal::AUTODUMP = 1;
@@ -230,7 +230,7 @@ sub handle_connection {
                     }
                     if ( exists $self->{services}->{$key} ) {
                         my $service = $self->{services}->{$key};
-                        open my $fh, $service->{file} or next;
+                        open my $fh, '<', $service->{file} or next;
                         my $val = do { local $/; <$fh> };
                         if ( $full ) {
                             $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
@@ -340,21 +340,35 @@ __END__
 
 =head1 NAME
 
-App::derived - server
+App::derived - run commads periodically and calculate rate and check from network
 
 =head1 SYNOPSIS
 
+  $ cat CmdsFile
+  slowqueries: mysql -NB -e 'show global status like "Slow_queries%"'
   $ derived -p port CmdsFile
+
+  $ telnet localhost port
+  get slowqueris
+  VALUE com_select 0 3
+  0.2  
 
 =head1 DESCRIPTION
 
-See perldoc derived
+derived runs commads periodically and capture integer value. And calculate per-second rate. 
+You can retrieve thesse values from integrated memcached-protocol server
+
+You can monitoring the variation of metrics through this daemon.
+
+See detail for perldoc "derived"
 
 =head1 AUTHOR
 
 Masahiro Nagano E<lt>kazeburo@gmail.comE<gt>
 
 =head1 SEE ALSO
+
+<derived>
 
 =head1 LICENSE
 

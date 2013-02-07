@@ -5,21 +5,24 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use App::derived;
-use Getopt::Long qw/:config posix_default no_ignore_case bundling auto_help/;
+use Getopt::Long qw/:config posix_default no_ignore_case bundling/;
 use Pod::Usage qw/pod2usage/;
 
 GetOptions(
     \my %opt, qw/
+    h|help
     i=i
-    p|port=i
-    h|host=s
+    port=i
+    host=s
 /) or pod2usage(1);
 
-$opt{h} ||= 0;
-pod2usage(1) unless $opt{p};
+pod2usage(-verbose=>2,-exitval=>0) unless $opt{h};
+
+$opt{host} ||= 0;
+pod2usage(-verbose=>2,-exitval=>1) unless $opt{port};
 my $interval = $opt{i} || 10;
 my ($derivedfile) = @ARGV;
-pod2usage(1) unless $derivedfile;
+pod2usage(-verbose=>2,-exitval=>1) unless $derivedfile;
 
 my $derived = App::derived->new;
 my $services = load_derviedfile($derivedfile);
@@ -40,3 +43,85 @@ sub load_derviedfile {
     }
     return \%services;
 }
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+derived - run commads periodically and calculate rate and check from network
+
+=head1 SYNOPSIS
+
+  $ cat CmdsFile
+  slowqueries: mysql -NB -e 'show global status like "Slow_queries%"'
+  $ derived -p 12306 CmdsFile
+
+  $ telnet localhost 12306
+  get slowqueris
+  VALUE com_select 0 3
+  0.2  
+
+=head1 DESCRIPTION
+
+derived runs commads periodically and capture integer value. And calculate per-second rate. 
+You can retrieve thesse values from integrated memcached-protocol server
+
+You can monitoring the variation of metrics through this daemon.
+
+=head1 ARGUMENT
+
+=over 4
+
+=item -h, --help
+
+Display help message
+
+=item -i 
+
+Interval seconds for running commands. Default 10.
+
+=item --port: Required
+
+Port number to bind
+
+=item --host
+
+IP address to bind
+
+=back
+
+=head1 COMMAND FILE
+
+A command file should contain both a name for the process and the command used to run it.
+
+  slowquery: mysql -NB -e 'show global status like "Slow_queries%"'
+  lines: wc -l /path/to/file
+
+=head1 SERVER
+
+You can access to data via integrated memcached-protocol server.
+
+  use Cache::Memcached::Fast;
+
+  my $memcached = Cache::Memcached::Fast->new({
+    servers => [qw/localhost:12306/],
+  });
+
+  say $memcached->get('slowqueris'); # only per seconds value.
+  say $memcached->get('slowqueris:full'); #JSON formated data include raw values
+
+=head1 AUTHOR
+
+Masahiro Nagano E<lt>kazeburo@gmail.comE<gt>
+
+=head1 LICENSE
+
+Copyright (C) Masahiro Nagano
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
+
