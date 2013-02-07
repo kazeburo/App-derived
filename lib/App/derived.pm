@@ -355,8 +355,8 @@ App::derived - run commads periodically and calculate rate and check from networ
 
 =head1 DESCRIPTION
 
-derived runs commads periodically and capture integer value. And calculate per-second rate. 
-You can retrieve thesse values from integrated memcached-protocol server
+derived runs commands periodically and capture integer value. And calculate per-second rate. 
+You can retrieve these values from integrated memcached-protocol server
 
 You can monitoring the variation of metrics through this daemon.
 
