@@ -16,7 +16,7 @@ GetOptions(
     host=s
 /) or pod2usage(1);
 
-pod2usage(-verbose=>2,-exitval=>0) unless $opt{h};
+pod2usage(-verbose=>2,-exitval=>0) if $opt{h};
 
 $opt{host} ||= 0;
 pod2usage(-verbose=>2,-exitval=>1) unless $opt{port};
@@ -61,7 +61,7 @@ derived - run commads periodically and calculate rate and check from network
   $ telnet localhost 12306
   get slowqueris
   VALUE slowqueris 0 3
-  0.2  
+  0.2  # slow queries/sec
 
 =head1 DESCRIPTION
 

@@ -351,7 +351,7 @@ App::derived - run commads periodically and calculate rate and check from networ
   $ telnet localhost port
   get slowqueris
   VALUE slowqueris 0 3
-  0.2  
+  0.2  # slow queries/sec
 
 =head1 DESCRIPTION
 
