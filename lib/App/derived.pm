@@ -340,7 +340,7 @@ __END__
 
 =head1 NAME
 
-App::derived - run commads periodically and calculate rate and check from network
+App::derived - run command periodically and calculate rate and check from network
 
 =head1 SYNOPSIS
 
