@@ -249,6 +249,9 @@ sub handle_connection {
                 $result .= "END" . $CRLF;
                 write_all( $conn, $result, $self->{timeout} );
             }
+            elsif ( $req->{cmd} eq 'version' ) {
+                write_all( $conn, "VERSION $App::derived::VERSION$CRLF", $self->{timeout} );
+            }
             elsif ( $req->{cmd} eq 'quit' ) {
                 #do nothing
                 last;

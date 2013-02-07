@@ -25,7 +25,7 @@ my ($derivedfile) = @ARGV;
 pod2usage(-verbose=>2,-exitval=>1) unless $derivedfile;
 
 my $derived = App::derived->new(
-    interval => $opt{i},
+    interval => $interval,
     host => $opt{host},
     port => $opt{port},
 );

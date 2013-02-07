@@ -19,6 +19,7 @@ sleep 3;
 my $memcached = Cache::Memcached::Fast->new({
     servers => ["localhost:$port"]
 });
+ok($memcached->server_versions()->{"localhost:$port"});
 ok($memcached->get("w1"));
 ok($memcached->get("w2"));
 ok($memcached->get("w1:full"));
