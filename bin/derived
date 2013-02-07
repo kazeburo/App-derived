@@ -54,7 +54,7 @@ __END__
 
 =head1 NAME
 
-derived - run commad periodically and calculate rate and check from network
+derived - run command periodically and calculate rate and check from network
 
 =head1 SYNOPSIS
 
@@ -69,8 +69,8 @@ derived - run commad periodically and calculate rate and check from network
 
 =head1 DESCRIPTION
 
-derived runs commads periodically and capture integer value. And calculate per-second rate. 
-You can retrieve thesse values from integrated memcached-protocol server
+derived runs command periodically and capture integer value. And calculate per-second rate. 
+You can retrieve these values from integrated memcached-protocol server
 
 You can monitoring the variation of metrics through this daemon.
 
