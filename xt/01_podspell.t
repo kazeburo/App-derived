@@ -13,7 +13,7 @@ foreach my $path (split(/:/, $ENV{PATH})) {
 plan skip_all => "no spell/ispell/aspell" unless $spell_cmd;
 
 set_spell_cmd($spell_cmd);
-all_pod_files_spelling_ok('lib');
+all_pod_files_spelling_ok('lib','bin');
 __DATA__
 Masahiro Nagano
 App::derived
