@@ -24,7 +24,11 @@ my $interval = $opt{i} || 10;
 my ($derivedfile) = @ARGV;
 pod2usage(-verbose=>2,-exitval=>1) unless $derivedfile;
 
-my $derived = App::derived->new;
+my $derived = App::derived->new(
+    interval => $opt{i},
+    host => $opt{host},
+    port => $opt{port},
+);
 my $services = load_derviedfile($derivedfile);
 
 for my $service ( keys %$services ) {
