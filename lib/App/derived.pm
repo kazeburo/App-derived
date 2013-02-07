@@ -238,10 +238,10 @@ sub handle_connection {
                         }
                         else {
                             my $ref = $_JSON->decode($val);
-                            if ( exists $ref->{persec} ) {
+                            if ( defined $ref->{persec} ) {
                                 my $val = $ref->{persec};
                                 $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
-                                $result .= $CRLF . $val . $CRLF;                                
+                                $result .= $CRLF . $val . $CRLF;
                             }
                         }
                     }
