@@ -12,7 +12,7 @@ use Proclet;
 use JSON ();
 use Log::Minimal;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 my $_JSON = JSON->new()
     ->utf8(1)

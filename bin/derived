@@ -60,7 +60,7 @@ derived - run command periodically and calculate rate and check from network
 
   $ cat CmdsFile
   slowqueries: mysql -NB -e 'show global status like "Slow_queries%"'
-  $ derived -p 12306 CmdsFile
+  $ derived --port 12306 CmdsFile
 
   $ telnet localhost 12306
   get slowqueris

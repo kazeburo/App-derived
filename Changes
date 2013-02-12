@@ -1,5 +1,9 @@
 Revision history for Perl extension App::derived
 
+0.03    Tue Feb 12 23:32:27 2013
+        - initialize persec with 0E0.
+          IF there is no previous data to calculate rate, the server returns "0E0"
+
 0.02    Tue Feb 12 11:31:57 2013
         - requires '/bin/bash'
 
