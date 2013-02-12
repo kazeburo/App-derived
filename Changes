@@ -1,4 +1,7 @@
 Revision history for Perl extension App::derived
 
+0.02    Tue Feb 12 11:31:57 2013
+        - requires '/bin/bash'
+
 0.01    Thu Feb  7 09:52:05 2013
-    - original version
+        - original version
