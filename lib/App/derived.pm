@@ -44,7 +44,10 @@ sub add_service {
     my $self = shift;
     my ($key, $cmd) = @_;
     my ($tmpfh,$tmpfile) = tempfile(UNLINK=>0, EXLOCK=>0);
-    print $tmpfh $_JSON->encode({status=>"INIT"});
+    print $tmpfh $_JSON->encode({
+        status=>"INIT",
+        persec => '0E0',
+    });
     close $tmpfh;
     $self->{services}->{$key} = {
         cmd => ['/bin/bash', '-c', $cmd],
