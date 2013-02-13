@@ -47,6 +47,7 @@ sub add_service {
     print $tmpfh $_JSON->encode({
         status=>"INIT",
         persec => '0E0',
+        latest => '0E0',
     });
     close $tmpfh;
     $self->{services}->{$key} = {
@@ -118,6 +119,7 @@ sub worker {
             atomic_write($service->{file}, {
                 status => "ERROR",
                 persec => undef,
+                latest => undef,
                 raw => undef,
                 exit_code => $exit_code,
                 last_update => time,
@@ -133,12 +135,21 @@ sub worker {
         }
         if ( ! defined $service->{prev} ) {
             $service->{prev} = $result;
+            atomic_write( $service->{file}, {
+                status => "CALCURATE",
+                persec => "E0E",
+                latest => $result,
+                raw => $orig,
+                exit_code => $exit_code,
+                last_update => time,
+            });
             next;
         }
         my $derive = ($result - $service->{prev}) / $self->{interval};
         atomic_write( $service->{file}, {
             status => "OK",
             persec => $derive,
+            latest => $result,
             raw => $orig,
             exit_code => $exit_code,
             last_update => time,
@@ -226,21 +237,32 @@ sub handle_connection {
                 my $result;
                 debugf("[server] request get => %s from %s:%s", $req->{keys}, $conn->peerhost, $conn->peerport);
                 for my $key ( @keys ) {
-                    my $full;
+                    my $mode = '';
                     if ( $key =~ m!:full$! ) {
-                        $full = 1;
+                        $mode = 'full';
                         $key =~ s!:full$!!;
+                    }
+                    elsif ( $key =~ m!:latest$! ) {
+                        $mode = 'latest';
+                        $key =~ s!:latest$!!;                        
                     }
                     if ( exists $self->{services}->{$key} ) {
                         my $service = $self->{services}->{$key};
                         open my $fh, '<', $service->{file} or next;
                         my $val = do { local $/; <$fh> };
-                        if ( $full ) {
+                        my $ref = $_JSON->decode($val);
+                        if ( $mode eq 'full' ) {
                             $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
                             $result .= $CRLF . $val . $CRLF;
                         }
+                        elsif ( $mode eq 'latest' ) {
+                            if ( defined $ref->{latest} ) {
+                                my $val = $ref->{latest};
+                                $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
+                                $result .= $CRLF . $val . $CRLF;
+                            }
+                        }
                         else {
-                            my $ref = $_JSON->decode($val);
                             if ( defined $ref->{persec} ) {
                                 my $val = $ref->{persec};
                                 $result .= join $DELIMITER, "VALUE", $key, 0, length($val);

@@ -114,8 +114,9 @@ You can access to data via integrated memcached-protocol server.
   });
 
   say $memcached->get('slowqueris'); # only per seconds value.
+  say $memcached->get('slowqueris:latest'); # only latest value.
   say $memcached->get('slowqueris:full'); #JSON formated data include raw values
-
+  
 =head1 NOTICE
 
 IF there is no previous data to calculate rate, the server returns "0E0"
