@@ -22,6 +22,8 @@ my $memcached = Cache::Memcached::Fast->new({
 ok($memcached->server_versions()->{"localhost:$port"});
 ok($memcached->get("w1"));
 ok($memcached->get("w2"));
+ok($memcached->get("w1:latest"));
+ok($memcached->get("w2:latest"));
 ok($memcached->get("w1:full"));
 ok($memcached->get("w2:full"));
 
