@@ -22,7 +22,7 @@ my $build = Module::Build->new(
         'File::Copy'                        => '0',
         'IO::Socket::INET'                  => '0',
         'POSIX'                             => '0',
-        'Proclet'                           => '0.21',
+        'Proclet'                           => '0.23',
         'JSON'                              => '2.53',
         'Log::Minimal'                      => '0.14',
     },

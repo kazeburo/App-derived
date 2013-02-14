@@ -6,7 +6,7 @@ use 5.008005;
 use File::Temp qw/tempfile/;
 use File::Copy;
 use IO::Socket::INET;
-use POSIX qw(EINTR EAGAIN EWOULDBLOCK);
+use POSIX qw(EINTR EAGAIN EWOULDBLOCK :sys_wait_h);
 use Socket qw(IPPROTO_TCP TCP_NODELAY);
 use Proclet;
 use JSON ();
@@ -29,7 +29,7 @@ sub new {
     my $class = shift;
     my %opt = ref $_[0] ? %{$_[0]} : @_;
     my %args = (
-        proclet  => Proclet->new,
+        proclet  => Proclet->new(enable_log_worker=>0),
         interval => 10,
         host     => 0,
         port     => 12306,
@@ -77,14 +77,12 @@ sub run {
         (($^O eq 'MSWin32') ? () : (ReuseAddr => 1)),
     ) or die "failed to listen to port $localaddr: $!";
 
-
     $self->{proclet}->service(
         code => sub {
             $0 = "$0 server";
             $self->server($sock);
         },
         tag => 'server',
-        worker => 3,
     );
     debugf("run proclet");
     $self->{proclet}->run;
@@ -99,9 +97,10 @@ sub DESTROY {
 
 sub worker {
     my ($self, $service_key) = @_;
+    srand();
     my $service = $self->{services}->{$service_key};
     my $n = time;
-    $n = $n - ( $n % $self->{interval}) + $self->{interval}; #next
+    $n = $n - ( $n % $self->{interval}) + $self->{interval} + int(rand($self->{interval}));; #next + random
     my $stop = 1;
     local $SIG{TERM} = sub { $stop = 0 };
 
@@ -204,6 +203,10 @@ sub server {
     my $self = shift;
     my $sock = shift;
 
+    local $SIG{CHLD} = sub {
+        1 until (-1 == waitpid(-1, WNOHANG));
+    };
+
     while(1) {
         local $SIG{PIPE} = 'IGNORE';
         if ( my $conn = $sock->accept ) {
@@ -211,9 +214,15 @@ sub server {
             $conn->blocking(0)
                 or die "failed to set socket to nonblocking mode:$!";
             $conn->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
-                or die "setsockopt(TCP_NODELAY) failed:$!";            
-            $self->handle_connection($conn);
-            debugf("[server] close connection: %s:%s", $conn->peerhost, $conn->peerport);
+                or die "setsockopt(TCP_NODELAY) failed:$!";
+            my $pid = fork();
+            die "cannot fork: $!" unless defined $pid;
+            if ( $pid == 0 ) {
+                $self->handle_connection($conn);
+                debugf("[server] close connection: %s:%s", $conn->peerhost, $conn->peerport);
+                $conn->close;
+                exit;
+            }
             $conn->close;
         }
     }
