@@ -12,7 +12,7 @@ my $port = Test::TCP::empty_port();
 
 my $pid = fork();
 if ( $pid == 0 ) {
-    exec $^X, '-I./lib','./bin/derived', '-i', 1, '--port', $port, './t/CmdsFile';
+    exec $^X, '-I./lib','./bin/derived', '-i', 1, '-M', "Memcached,port=$port", './t/CmdsFile';
     exit;
 }
 sleep 3;

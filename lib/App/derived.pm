@@ -5,9 +5,6 @@ use warnings;
 use 5.008005;
 use File::Temp qw/tempfile/;
 use File::Copy;
-use IO::Socket::INET;
-use POSIX qw(EINTR EAGAIN EWOULDBLOCK :sys_wait_h);
-use Socket qw(IPPROTO_TCP TCP_NODELAY);
 use Proclet;
 use JSON ();
 use Log::Minimal;
@@ -20,10 +17,6 @@ my $_JSON = JSON->new()
     ->space_before(0)
     ->space_after(0)
     ->indent(0);
-
-our $MAX_REQUEST_SIZE = 131072;
-our $CRLF      = "\x0d\x0a";
-our $DELIMITER = "\x20";
 
 sub new {
     my $class = shift;
@@ -66,25 +59,21 @@ sub add_service {
     );
 }
 
+sub add_plugin {
+    my $self = shift;
+    my ( $plugin, $args) = @_;
+
+    my %args = (
+        %$args,
+        _services => $self->{services},
+        _proclet => $self->{proclet},
+    );    
+    my $instance = $plugin->new(\%args);
+    $instance->init();
+}
+
 sub run {
     my $self = shift;
-
-    my $localaddr = $self->{host} .':'. $self->{port};
-    my $sock = IO::Socket::INET->new(
-        Listen    => SOMAXCONN,
-        LocalAddr => $localaddr,
-        Proto     => 'tcp',
-        (($^O eq 'MSWin32') ? () : (ReuseAddr => 1)),
-    ) or die "failed to listen to port $localaddr: $!";
-
-    $self->{proclet}->service(
-        code => sub {
-            $0 = "$0 server";
-            $self->server($sock);
-        },
-        tag => 'server',
-    );
-    debugf("run proclet");
     $self->{proclet}->run;
 }
 
@@ -199,176 +188,6 @@ sub atomic_write {
     move( $tmpfile, $writefile);
 }
 
-sub server {
-    my $self = shift;
-    my $sock = shift;
-
-    local $SIG{CHLD} = sub {
-        1 until (-1 == waitpid(-1, WNOHANG));
-    };
-
-    while(1) {
-        local $SIG{PIPE} = 'IGNORE';
-        if ( my $conn = $sock->accept ) {
-            debugf("[server] new connection from %s:%s", $conn->peerhost, $conn->peerport);
-            $conn->blocking(0)
-                or die "failed to set socket to nonblocking mode:$!";
-            $conn->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
-                or die "setsockopt(TCP_NODELAY) failed:$!";
-            my $pid = fork();
-            die "cannot fork: $!" unless defined $pid;
-            if ( $pid == 0 ) {
-                $self->handle_connection($conn);
-                debugf("[server] close connection: %s:%s", $conn->peerhost, $conn->peerport);
-                $conn->close;
-                exit;
-            }
-            $conn->close;
-        }
-    }
-
-}
-
-sub handle_connection {
-    my ($self, $conn) = @_;
-    
-    my $buf = '';
-    my $req = +{};
-
-    while (1) {
-        my $rlen = read_timeout(
-            $conn, \$buf, $MAX_REQUEST_SIZE - length($buf), length($buf), $self->{timeout},
-        ) or last;
-        if ( parse_read_buffer($buf, $req ) ) {
-            $buf = '';
-            if ( $req->{cmd} eq 'get' ) {
-                my @keys = split /\x20+/, $req->{keys};
-                my $result;
-                debugf("[server] request get => %s from %s:%s", $req->{keys}, $conn->peerhost, $conn->peerport);
-                for my $key ( @keys ) {
-                    my $mode = '';
-                    if ( $key =~ m!:full$! ) {
-                        $mode = 'full';
-                        $key =~ s!:full$!!;
-                    }
-                    elsif ( $key =~ m!:latest$! ) {
-                        $mode = 'latest';
-                        $key =~ s!:latest$!!;                        
-                    }
-                    if ( exists $self->{services}->{$key} ) {
-                        my $service = $self->{services}->{$key};
-                        open my $fh, '<', $service->{file} or next;
-                        my $val = do { local $/; <$fh> };
-                        my $ref = $_JSON->decode($val);
-                        if ( $mode eq 'full' ) {
-                            $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
-                            $result .= $CRLF . $val . $CRLF;
-                        }
-                        elsif ( $mode eq 'latest' ) {
-                            if ( defined $ref->{latest} ) {
-                                my $val = $ref->{latest};
-                                $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
-                                $result .= $CRLF . $val . $CRLF;
-                            }
-                        }
-                        else {
-                            if ( defined $ref->{persec} ) {
-                                my $val = $ref->{persec};
-                                $result .= join $DELIMITER, "VALUE", $key, 0, length($val);
-                                $result .= $CRLF . $val . $CRLF;
-                            }
-                        }
-                    }
-                }
-                $result .= "END" . $CRLF;
-                write_all( $conn, $result, $self->{timeout} );
-            }
-            elsif ( $req->{cmd} eq 'version' ) {
-                write_all( $conn, "VERSION $App::derived::VERSION$CRLF", $self->{timeout} );
-            }
-            elsif ( $req->{cmd} eq 'quit' ) {
-                #do nothing
-                last;
-            }
-            else {
-                write_all( $conn, "ERROR".$CRLF, $self->{timeout} );
-            }
-        }
-    }
-    return;
-}
-
-sub parse_read_buffer {
-    my ($buf, $ret) = @_;
-    if ( $buf =~ /$CRLF$/o ) {
-        my ($req_line) = split /$CRLF/, $buf;
-        ($ret->{cmd}, $ret->{keys}) = split /$DELIMITER/o, $req_line, 2;
-        $ret->{keys} ||= '';
-        return 1;
-    }
-    return;
-}
-
-# returns (positive) number of bytes read, or undef if the socket is to be closed
-sub read_timeout {
-    my ($sock, $buf, $len, $off, $timeout) = @_;
-    do_io(undef, $sock, $buf, $len, $off, $timeout);
-}
-
-# returns (positive) number of bytes written, or undef if the socket is to be closed
-sub write_timeout {
-    my ($sock, $buf, $len, $off, $timeout) = @_;
-    do_io(1, $sock, $buf, $len, $off, $timeout);
-}
-
-# writes all data in buf and returns number of bytes written or undef if failed
-sub write_all {
-    my ($sock, $buf, $timeout) = @_;
-    my $off = 0;
-    while (my $len = length($buf) - $off) {
-        my $ret = write_timeout($sock, $buf, $len, $off, $timeout)
-            or return;
-        $off += $ret;
-    }
-    return length $buf;
-}
-
-# returns value returned by $cb, or undef on timeout or network error
-sub do_io {
-    my ($is_write, $sock, $buf, $len, $off, $timeout) = @_;
-    my $ret;
- DO_READWRITE:
-    # try to do the IO
-    if ($is_write) {
-        $ret = syswrite $sock, $buf, $len, $off
-            and return $ret;
-    } else {
-        $ret = sysread $sock, $$buf, $len, $off
-            and return $ret;
-    }
-    unless ((! defined($ret)
-                 && ($! == EINTR || $! == EAGAIN || $! == EWOULDBLOCK))) {
-        return;
-    }
-    # wait for data
- DO_SELECT:
-    while (1) {
-        my ($rfd, $wfd);
-        my $efd = '';
-        vec($efd, fileno($sock), 1) = 1;
-        if ($is_write) {
-            ($rfd, $wfd) = ('', $efd);
-        } else {
-            ($rfd, $wfd) = ($efd, '');
-        }
-        my $start_at = time;
-        my $nfound = select($rfd, $wfd, $efd, $timeout);
-        $timeout -= (time - $start_at);
-        last if $nfound;
-        return if $timeout <= 0;
-    }
-    goto DO_READWRITE;
-}
 
 1;
 __END__
@@ -383,7 +202,7 @@ App::derived - run command periodically and calculate rate and check from networ
 
   $ cat CmdsFile
   slowqueries: mysql -NB -e 'show global status like "Slow_queries%"'
-  $ derived -p port CmdsFile
+  $ derived -MMemcahced,port=11211,host=127.0.0.1 CmdsFile
 
   $ telnet localhost port
   get slowqueris
@@ -393,7 +212,7 @@ App::derived - run command periodically and calculate rate and check from networ
 =head1 DESCRIPTION
 
 derived runs commands periodically and capture integer value. And calculate per-second rate. 
-You can retrieve these values from integrated memcached-protocol server
+You can retrieve these values from integrated memcached-protocol server or plugable workers.
 
 You can monitoring the variation of metrics through this daemon.
 

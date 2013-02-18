@@ -25,6 +25,7 @@ my $build = Module::Build->new(
         'Proclet'                           => '0.23',
         'JSON'                              => '2.53',
         'Log::Minimal'                      => '0.14',
+        'Module::Load'                      => '0.24',
     },
 
     no_index    => { 'directory' => [ 'inc' ] },
