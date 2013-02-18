@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use parent qw/App::derived::Plugin/;
 use Class::Accessor::Lite (
-    rw => [qw/api_url service section type mode interval timeout/],
+    rw => [qw/api_url service section type mode interval timeout match_key/],
 );
 use LWP::UserAgent;
 use Log::Minimal;
@@ -19,6 +19,7 @@ sub init {
     $self->timeout(10) unless $self->timeout;
     $self->mode('gauge') unless $self->mode;
     $self->type('latest') unless $self->type;
+    $self->match_key('^.+$') unless $self->match_key;
 
     $self->add_worker(
         'growthforeacst',
@@ -37,9 +38,12 @@ sub gf_post {
         while (1) {
             sleep $self->interval;
             my @keys = $self->service_keys;
+            my $match_key = $self->match_key;
             for my $key ( @keys ) {
+                next if $key !~ m!$match_key!;
                 my $number = $self->service_stats($key)->{$self->type};
                 next if $number eq '0E0';
+                debugf('[GrowthForecast] post %s {number:%s,mode:%s}', $key, $number, $self->mode);
                 my $res = $ua->post(
                     $self->api_url . $self->service . '/' . $self->section . '/' . $key, {
                         number => int($number),
@@ -100,6 +104,10 @@ Data type available with "latest"(default) and "persec".
 =item interval:Int
 
 Interval seconds to post
+
+=item match_key:Regexp
+
+Post match keys only. default '.+' (all keys)
 
 =back
   

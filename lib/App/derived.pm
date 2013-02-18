@@ -22,7 +22,7 @@ sub new {
     my $class = shift;
     my %opt = ref $_[0] ? %{$_[0]} : @_;
     my %args = (
-        proclet  => Proclet->new(enable_log_worker=>0),
+        proclet  => Proclet->new(enable_log_worker => ($ENV{LM_DEBUG} ? 1 : 0)),
         interval => 10,
         host     => 0,
         port     => 12306,

@@ -40,13 +40,16 @@ sub service_keys {
     keys %{$self->_services};
 }
 
+my %worker_tag;
 sub add_worker {
     my $self = shift;
     my ($tag, $code, $workers) = @_;
     $workers ||= 1;
+    $worker_tag{$tag} = 0 unless exists $worker_tag{$tag};
+    $worker_tag{$tag}++;
     $self->_proclet->service(
         code => $code,
-        tag => $tag,
+        tag => $tag . '_' . $worker_tag{$tag},
         worker => $workers
     );
 }
