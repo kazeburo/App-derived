@@ -58,7 +58,7 @@ my @line = <$afh>;
 ok(@line >= 2);
 like( $line[0], qr/w[12]/);
 like( $line[1], qr/w[12]/);
-unlink($done);
+unlink($tmpfile);
 
 done_testing();
 
