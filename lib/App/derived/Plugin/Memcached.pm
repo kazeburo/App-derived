@@ -242,7 +242,7 @@ Host name or Address to bind
 
 =item timeout:Int
 
-Timeout seconds to read request. defautl 10.
+Timeout seconds to read request. default 10.
 
 =back
 

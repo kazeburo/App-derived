@@ -212,7 +212,7 @@ App::derived - run command periodically and calculate rate and check from networ
 =head1 DESCRIPTION
 
 derived runs commands periodically and capture integer value. And calculate per-second rate. 
-You can retrieve these values from integrated memcached-protocol server or plugable workers.
+You can retrieve these values from integrated memcached-protocol server or pluggable workers.
 
 You can monitoring the variation of metrics through this daemon.
 

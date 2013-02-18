@@ -118,11 +118,11 @@ Retrieve service status
 
 =item exists_service($key): Bool
 
-Checking existstence of service named $key
+Checking existence of service named $key
 
 =item service_keys(): Array
 
-get all registerd service keys
+get all registered service keys
 
 =item add_worker($tag:String, $code:SubRef)
 
@@ -130,7 +130,7 @@ Registering a worker
 
 =item init
 
-Required impliment this method in your Plugin
+Required to implementing this method in your Plugin
 
 =back
 
