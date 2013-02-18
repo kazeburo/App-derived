@@ -27,6 +27,8 @@ my $build = Module::Build->new(
         'JSON'                              => '2.53',
         'Log::Minimal'                      => '0.14',
         'Module::Load'                      => '0.24',
+        'Class::Accessor::Lite'             => '0.05',
+        'LWP::UserAgent'                    => '6.02',
     },
 
     no_index    => { 'directory' => [ 'inc' ] },

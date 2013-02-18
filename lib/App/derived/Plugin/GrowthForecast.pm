@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use parent qw/App::derived::Plugin/;
 use Class::Accessor::Lite (
-    rw => [qw/api_url service section type mode interval timeout match_key/],
+    rw => [qw/api_url service section type mode interval timeout match_key prefix/],
 );
 use LWP::UserAgent;
 use Log::Minimal;
@@ -20,6 +20,7 @@ sub init {
     $self->mode('gauge') unless $self->mode;
     $self->type('latest') unless $self->type;
     $self->match_key('^.+$') unless $self->match_key;
+    $self->prefix('') unless defined $self->prefix;
 
     $self->add_worker(
         'growthforeacst',
@@ -42,16 +43,17 @@ sub gf_post {
             for my $key ( @keys ) {
                 next if $key !~ m!$match_key!;
                 my $number = $self->service_stats($key)->{$self->type};
+                my $prefix = $self->prefix;
                 next if $number eq '0E0';
                 debugf('[GrowthForecast] post %s {number:%s,mode:%s}', $key, $number, $self->mode);
                 my $res = $ua->post(
-                    $self->api_url . $self->service . '/' . $self->section . '/' . $key, {
+                    $self->api_url . $self->service . '/' . $self->section . '/' . $prefix . $key, {
                         number => int($number),
                         mode => $self->mode
                     }
                 );
                 warnf('[GrowthForecast] failed post to %s {number:%s,mode:%s}: %s',
-                    $self->api_url . $self->service . '/' . $self->section . '/' . $key,
+                    $self->api_url . $self->service . '/' . $self->section . '/' . $prefix . $key,
                     $number, $self->mode, $res->status_line) unless $res->is_success;
                 
             }
@@ -108,6 +110,10 @@ Interval seconds to post
 =item match_key:Regexp
 
 Post match keys only. default '.+' (all keys)
+
+=item prefix:String
+
+add prefix string to key of post uri
 
 =back
   

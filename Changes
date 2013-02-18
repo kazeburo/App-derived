@@ -1,5 +1,9 @@
 Revision history for Perl extension App::derived
 
+0.07    Tue Feb 19 00:58:26 2013
+        - requires LWP
+        - supports prefix in GrowthForecast
+
 0.06    Tue Feb 19 00:34:03 2013
         - supports match_key in GrowthForecast
         - generates unique tagname for plugins
