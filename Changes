@@ -1,5 +1,10 @@
 Revision history for Perl extension App::derived
 
+0.05    Mon Feb 18 17:24;02 2013
+        - [IMPORTANT] imcompatible change
+          Changed command options of derived
+          Added Pluggable system. New plugins are Memcached, GrowthForecast and Dumper.
+
 0.04    Thu Feb 14 11:28:37 2013
         - randomize timing of starting command worker
         - stopped use preforking server
