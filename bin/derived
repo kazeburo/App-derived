@@ -13,14 +13,19 @@ GetOptions(
     'h|help' => \my $help,
     'i=i'    => \my $interval,
     'M=s@'   => \my @plugins,
+    'port=i' => \my $port,
+    'host=i' => \my $host,
 ) or pod2usage(1);
 
 pod2usage(-verbose=>2,-exitval=>0) if $help;
-pod2usage(-verbose=>1,-exitval=>1) if ! @plugins;
 my ($derivedfile) = @ARGV;
 pod2usage(-verbose=>1,-exitval=>1) unless $derivedfile;
 
 $interval = 10 unless $interval;
+$port = 12306 unless $port;
+$host = '0' unless defined $host;
+
+push @plugins, 'Memcached' if @plugins == 0;
 
 my $derived = App::derived->new(
     interval => $interval,
@@ -34,9 +39,14 @@ for my $service ( keys %$services ) {
 foreach my $plugin ( @plugins ) {
     my ($plugin, @args) = split /,/, $plugin;
     my %args = map { split /=/, $_ } @args;
+    
     $plugin = "App::derived::Plugin::" . $plugin if $plugin !~ m!^\+!;
-    load $plugin;
-    $derived->add_plugin( $plugin, \%args );
+    load($plugin);
+    $derived->add_plugin( $plugin, {
+        host => $host,
+        port => $port,
+        %args
+    });
 }
 
 $derived->run;
@@ -65,6 +75,11 @@ derived - run command periodically, calculate rate and check from network
 
   $ cat CmdsFile
   slowqueries: mysql -NB -e 'show global status like "Slow_queries%"'
+
+  $ derived --port=12306 CmdsFile
+
+  or
+
   $ derived -MMemcahced,port=12306 CmdsFile
 
   $ telnet localhost 12306
@@ -93,7 +108,7 @@ Interval seconds for running commands. Default 10.
 
 =item -M
 
-Plugin. Requires one or more Plugin load. 
+Plugin. 
 
 for example
 
@@ -101,9 +116,19 @@ for example
 
 loading plugin with port and host arguments.
 
-=item CmdsFile: Required
+If no plugin loaded, Memcached plugin will be loaded by default
 
-a file that list commands
+=item --port
+
+port number to bind. Memcached plugin uses this. default port number is 12306
+
+=item --host
+
+hostname or ipaddress to bind. Memcached plugin uses this.
+
+=item CmdsFile
+
+a file that list commands. required
 
 =back
 

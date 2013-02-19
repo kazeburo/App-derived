@@ -29,7 +29,7 @@ sub init {
         Proto     => 'tcp',
         (($^O eq 'MSWin32') ? () : (ReuseAddr => 1)),
     ) or die "failed to listen to port $localaddr: $!";
-
+    infof('Memcached server starts listen on %s',$localaddr);
     $self->add_worker(
         'memcached_server_'.$localaddr,
         sub {

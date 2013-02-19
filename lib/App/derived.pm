@@ -48,7 +48,7 @@ sub add_service {
         file => $tmpfile,
         prev => undef,
     };
-    debugf("add service: %s", $key);
+    infof("register service: %s", $key);
     $self->{proclet}->service(
         code => sub {
             $0 = "$0 worker $key";
@@ -68,6 +68,7 @@ sub add_plugin {
         _services => $self->{services},
         _proclet => $self->{proclet},
     );    
+    infof("register plugin: %s", $plugin);
     my $instance = $plugin->new(\%args);
     $instance->init();
 }
