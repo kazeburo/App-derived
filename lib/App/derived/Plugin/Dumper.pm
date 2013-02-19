@@ -30,7 +30,7 @@ __END__
 
 =head1 NAME
 
-App::derived::Plugin::Dumper - Disply serialized data
+App::derived::Plugin::Dumper - Display serialized data
 
 =head1 SYNOPSIS
 
@@ -38,7 +38,7 @@ App::derived::Plugin::Dumper - Disply serialized data
 
 =head1 DESCRIPTION
 
-This plugin displys serialized data
+This plugin displays serialized data
 
 =head1 ARGUMENTS
 

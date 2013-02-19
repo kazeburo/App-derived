@@ -66,3 +66,6 @@ GrowthForecast
 persec
 plugins
 init
+hostname
+ipaddress
+uri
