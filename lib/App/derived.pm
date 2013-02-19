@@ -44,7 +44,7 @@ sub add_service {
     });
     close $tmpfh;
     $self->{services}->{$key} = {
-        cmd => ['/bin/bash', '-c', $cmd],
+        cmd => ['bash', '-c', $cmd],
         file => $tmpfile,
         prev => undef,
     };

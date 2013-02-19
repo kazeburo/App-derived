@@ -3,7 +3,7 @@ use warnings;
 use Module::Build;
 use Carp;
 
-requires_external_bin('/bin/bash');
+requires_external_bin('bash');
 
 my $build = Module::Build->new(
     license              => 'perl',
