@@ -1,5 +1,9 @@
 Revision history for Perl extension App::derived
 
+0.08    Tue Feb 19 9:51:33 2013
+        - lower compatibility
+          If no plugins are loaded, Memcached plugins will be loaded by default
+
 0.07    Tue Feb 19 00:58:26 2013
         - requires LWP
         - supports prefix in GrowthForecast

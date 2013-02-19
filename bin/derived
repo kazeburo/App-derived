@@ -116,7 +116,7 @@ for example
 
 loading plugin with port and host arguments.
 
-If no plugin loaded, Memcached plugin will be loaded by default
+If no plugin are loaded, Memcached plugin will be loaded by default
 
 =item --port
 
