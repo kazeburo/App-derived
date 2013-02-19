@@ -1,5 +1,9 @@
 Revision history for Perl extension App::derived
 
+0.09    Web Feb 20 1:09:31 2013
+        - use relative "bash" path instead of absolute path.
+          some *BSD system install bash to /usr/bin 
+
 0.08    Tue Feb 19 9:51:33 2013
         - lower compatibility
           If no plugins are loaded, Memcached plugins will be loaded by default
