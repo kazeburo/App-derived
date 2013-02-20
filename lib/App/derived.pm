@@ -95,8 +95,12 @@ sub worker {
     local $SIG{TERM} = sub { $stop = 0 };
 
     while ( $stop ) {
+        my $current = time();
+        while ( $n < $current ) {
+            $n = $n + $self->{interval};
+        }
         while ( $stop ) {
-            last if time >= $n;
+            last if time() >= $n;
             select undef, undef, undef, 0.1 ## no critic;
         }
         $n = $n + $self->{interval};
